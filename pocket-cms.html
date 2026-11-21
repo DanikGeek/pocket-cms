@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Локальный редактор в стиле Graph.org</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #1a1a1a;
+            --muted-color: #777777;
+            --accent-color: #403e3e;
+            --border-color: #e6e6e6;
+            --bg-secondary: #f7f9fa;
+        }
+
+        body {
+            font-family: CustomSerif,Georgia,Cambria,'Times New Roman',serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.8;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 720px;
+        }
+
+        /* Шапка управления */
+        .toolbar-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+
+        .btn-publish {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-publish:hover {
+            background-color: #1b68a8;
+        }
+
+        .filename-preview {
+            font-size: 13px;
+            color: var(--muted-color);
+            font-family: monospace;
+        }
+
+        /* Поля ввода */
+        input.title-input {
+            width: 100%;
+            font-size: 32px;
+            font-weight: 700;
+            border: none;
+            outline: none;
+            margin-bottom: 10px;
+            font-family: inherit;
+            color: var(--text-color);
+            box-sizing: border-box;
+        }
+
+        input.title-input::placeholder {
+            color: #d0d0d0;
+        }
+
+        /* Поле для ввода автора */
+        input.author-input {
+            width: 100%;
+            font-size: 15px;
+            border: none;
+            outline: none;
+            margin-bottom: 20px;
+            font-family: inherit;
+            color: var(--muted-color);
+            background: transparent;
+            box-sizing: border-box;
+        }
+
+        input.author-input::placeholder {
+            color: #cccccc;
+        }
+
+        /* Липкая панель инструментов */
+        .editor-tools-wrapper {
+            position: sticky;
+            top: 0px;
+            z-index: 100;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .editor-tools {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 8px;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+
+        .tool-btn {
+            background: white;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+			color: #777777;
+        }
+
+        .tool-btn:hover {
+            background-color: #f3f4f6;
+            border-color: #0969da;
+            color: #0969da;
+        }
+
+        .tool-btn.active {
+            background-color: #0969da;
+            color: white;
+            border-color: #0969da;
+        }
+
+        /* Область визуального редактора */
+        .content-input {
+            width: 100%;
+            min-height: 450px;
+            font-size: 18px;
+            border: 1px solid transparent;
+            outline: none;
+            font-family: inherit;
+            color: var(--text-color);
+            line-height: 1.8;
+            box-sizing: border-box;
+            padding: 10px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        /* Гарантируем отступы для элементов прямо в редакторе */
+        .content-input p {
+            margin: 1.2em 0;
+        }
+
+        .content-input ul, .content-input ol {
+            padding-left: 25px;
+            margin: 1.2em 0;
+        }
+
+        .content-input li {
+            margin-bottom: 0.4em;
+        }
+
+        .content-input:focus {
+            border-color: var(--border-color);
+            border-radius: 4px;
+        }
+
+        /* Стили для медиа внутри редактора */
+        .content-input figure {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .content-input img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+        }
+        .content-input figcaption {
+            font-size: 14px;
+            color: #777;
+            margin-top: 6px;
+        }
+        .content-input .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            max-width: 100%;
+            background: #000;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .content-input .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+		.pre {
+			border-left: grey solid;
+			padding-left: 15px;
+			font-size: 15px;
+			background: #306e1e0d;
+		}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Шапка с именем файла и публикацией -->
+    <div class="toolbar-top">
+        <div>
+            <span style="font-size: 13px; color: var(--muted-color); font-weight: 500;">Имя файла: </span>
+            <span id="slugOutput" class="filename-preview">post.html</span>
+        </div>
+        <button class="btn-publish" onclick="exportHTML()">Download HTML</button>
+    </div>
+
+    <!-- Заголовок -->
+    <input type="text" id="postTitle" class="title-input" placeholder="Заголовок..." oninput="onTitleChange()">
+
+    <!-- Автор -->
+    <input type="text" id="postAuthor" class="author-input" placeholder="Имя автора (например, DanikGeek)" oninput="saveDraft()">
+
+    <!-- Липкая панель инструментов -->
+    <div class="editor-tools-wrapper">
+        <div class="editor-tools">
+            <button class="tool-btn" onclick="formatText('bold')"><b>B</b></button>
+            <button class="tool-btn" onclick="formatText('italic')"><i>I</i></button>
+            <button class="tool-btn" onclick="insertLink()"><!--🔗--> Link</button>
+            <button class="tool-btn" onclick="formatText('insertUnorderedList')">• List</button>
+            <button class="tool-btn" onclick="formatText('insertOrderedList')">1. Num</button>
+            <button class="tool-btn" onclick="insertImage()"><!--🖼️--> Image</button>
+            <button class="tool-btn" onclick="insertYouTube()"><!--▶️--> YouTube</button>
+            <button class="tool-btn" id="codeBtn" onclick="toggleSourceCode()">&lt;&gt;</button>
+            <button class="tool-btn" onclick="clearDraft()" style="margin-left: auto; /*color: #cf222e; border-color: #ffc1c0;*/">🗑 Clean</button>
+        </div>
+    </div>
+
+    <!-- Область редактирования -->
+    <div id="postContent" class="content-input" contenteditable="true" oninput="saveDraft()" placeholder="Пишите вашу историю..."></div>
+</div>
+
+<script>
+    const titleInput = document.getElementById('postTitle');
+    const authorInput = document.getElementById('postAuthor');
+    const contentInput = document.getElementById('postContent');
+    const slugOutput = document.getElementById('slugOutput');
+    const codeBtn = document.getElementById('codeBtn');
+    
+    let isSourceMode = false;
+    let creationDate = '';
+
+    // Перехват вставки для очистки лишнего форматирования и сохранения ссылок/структуры
+    contentInput.addEventListener('paste', function(e) {
+        if (isSourceMode) return; // В режиме кода вставляем обычный текст без очистки HTML
+        
+        e.preventDefault();
+        const clipboardData = e.clipboardData || window.clipboardData;
+        const pastedHTML = clipboardData.getData('text/html');
+        const pastedText = clipboardData.getData('text/plain');
+
+        if (pastedHTML) {
+            const cleanHTML = sanitizeHTML(pastedHTML);
+            insertHTMLAtCursor(cleanHTML);
+        } else if (pastedText) {
+            // Форматируем обычный текст в абзацы по перенос строки
+            const formattedText = pastedText
+                .split(/\n\s*\n/)
+                .map(p => `<p>${escapeHTML(p.trim())}</p>`)
+                .join('');
+            insertHTMLAtCursor(formattedText);
+        }
+    });
+
+    // Экранирование спецсимволов текста
+    function escapeHTML(str) {
+        return str.replace(/[&<>"']/g, m => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+        }[m]));
+    }
+
+    // Санитайзер для сохранения нужной структуры и удаления спана/стилей/мусора
+    function sanitizeHTML(htmlString) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlString, 'text/html');
+        const allowedTags = new Set(['P', 'A', 'B', 'STRONG', 'I', 'EM', 'UL', 'OL', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE', 'FIGURE', 'FIGCAPTION', 'IMG', 'IFRAME', 'BR']);
+
+        function cleanNode(node) {
+            const children = Array.from(node.childNodes);
+            
+            children.forEach(child => {
+                if (child.nodeType === Node.ELEMENT_NODE) {
+                    const tagName = child.tagName;
+                    
+                    // Если тег не входит в список разрешенных — заменяем его дочерними узлами
+                    if (!allowedTags.has(tagName)) {
+                        while (child.firstChild) {
+                            node.insertBefore(child.firstChild, child);
+                        }
+                        node.removeChild(child);
+                        return;
+                    }
+
+                    // Удаляем абсолютно все атрибуты (class, style, id...), кроме нужных для ссылок и медиа
+                    const attributes = Array.from(child.attributes);
+                    attributes.forEach(attr => {
+                        const name = attr.name.toLowerCase();
+                        if (tagName === 'A' && (name === 'href' || name === 'target')) return;
+                        if (tagName === 'IMG' && (name === 'src' || name === 'alt')) return;
+                        if (tagName === 'IFRAME' && (name === 'src' || name === 'title' || name === 'frameborder' || name === 'allowfullscreen')) return;
+                        child.removeAttribute(attr.name);
+                    });
+
+                    // Рекурсивная очистка вложенных элементов
+                    cleanNode(child);
+                }
+            });
+        }
+
+        cleanNode(doc.body);
+        return doc.body.innerHTML;
+    }
+
+    // Принудительное создание абзацев по нажатию Enter
+    contentInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !isSourceMode) {
+            document.execCommand('defaultParagraphSeparator', false, 'p');
+        }
+    });
+
+    // Инициализация при загрузке
+    window.addEventListener('DOMContentLoaded', () => {
+        const savedTitle = localStorage.getItem('draft_title');
+        const savedAuthor = localStorage.getItem('draft_author');
+        const savedContent = localStorage.getItem('draft_content');
+        const savedDate = localStorage.getItem('draft_date');
+
+        if (savedTitle) titleInput.value = savedTitle;
+        if (savedAuthor) authorInput.value = savedAuthor;
+        if (savedContent) contentInput.innerHTML = savedContent;
+        
+        // Если поле пустое при первом открытии, создаем пустой абзац
+        if (!contentInput.innerHTML.trim()) {
+            contentInput.innerHTML = '<p><br></p>';
+        }
+
+        if (savedDate) {
+            creationDate = savedDate;
+        } else {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            creationDate = new Date().toLocaleDateString('en-US', options);
+            localStorage.setItem('draft_date', creationDate);
+        }
+        
+        updateSlug();
+    });
+
+    function generateSlug(title) {
+        if (!title.trim()) return 'post';
+        
+        const ruToEn = {
+            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+            'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+            'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+            'ф': 'f', 'х': 'h', 'ц': 'c', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '',
+            'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+        };
+
+        let slug = title
+            .toLowerCase()
+            .trim()
+            .split('')
+            .map(char => ruToEn[char] || char)
+            .join('')
+            .replace(/[^a-z0-9 -]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-');
+
+        return slug ? slug + '.html' : 'post.html';
+    }
+
+    function updateSlug() {
+        slugOutput.innerText = generateSlug(titleInput.value);
+    }
+
+    function onTitleChange() {
+        updateSlug();
+        saveDraft();
+    }
+
+    function saveDraft() {
+        localStorage.setItem('draft_title', titleInput.value);
+        localStorage.setItem('draft_author', authorInput.value);
+        const content = isSourceMode ? contentInput.innerText : contentInput.innerHTML;
+        localStorage.setItem('draft_content', content);
+    }
+
+    function clearDraft() {
+        if (confirm('Очистить черновик?')) {
+            titleInput.value = '';
+            authorInput.value = '';
+            contentInput.innerHTML = '<p><br></p>';
+            localStorage.removeItem('draft_title');
+            localStorage.removeItem('draft_author');
+            localStorage.removeItem('draft_content');
+            localStorage.removeItem('draft_date');
+            
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            creationDate = new Date().toLocaleDateString('en-US', options);
+            localStorage.setItem('draft_date', creationDate);
+            
+            updateSlug();
+        }
+    }
+
+    // Красивое форматирование HTML (Prettify)
+    function formatHTML(html) {
+        let tab = '  ';
+        let result = '';
+        let indent = '';
+
+        // Разбиваем HTML по тегам
+        html.split(/>\s*</).forEach(element => {
+            if (element.match(/^\/\w/)) {
+                // Закрывающий тег
+                indent = indent.substring(tab.length);
+            }
+
+            result += indent + '<' + element + '>\n';
+
+            if (element.match(/^<?\w[^>]*[^\/]$/) && !element.startsWith('input') && !element.startsWith('img') && !element.startsWith('br')) {
+                // Открывающий тег
+                indent += tab;
+            }
+        });
+
+        return result.substring(1, result.length - 2);
+    }
+
+// Функция для удаления технических отступов при переключении из режима кода обратно в визуальный
+    function minifyHTML(html) {
+        return html
+            .replace(/>\s+</g, '><') // Убираем пробелы и переносы между тегами
+            .trim();
+    }
+
+    function toggleSourceCode() {
+        isSourceMode = !isSourceMode;
+        
+        if (isSourceMode) {
+            // Переходим в режим кода: берем HTML, очищаем от лишнего и форматируем красиво
+            const rawHtml = contentInput.innerHTML;
+            const prettyHtml = formatHTML(rawHtml);
+            contentInput.innerText = prettyHtml;
+            contentInput.style.fontFamily = 'monospace';
+            contentInput.style.fontSize = '14px';
+            contentInput.style.backgroundColor = '#f6f8fa';
+            contentInput.style.whiteSpace = 'pre';
+            codeBtn.classList.add('active');
+        } else {
+            // Возвращаемся в визуальный режим: сжимаем HTML обратно в одну строку без мусорных отступов
+            const codeContent = contentInput.innerText;
+            contentInput.innerHTML = minifyHTML(codeContent);
+            contentInput.style.fontFamily = 'inherit';
+            contentInput.style.fontSize = '18px';
+            contentInput.style.backgroundColor = 'transparent';
+            contentInput.style.whiteSpace = 'pre-wrap';
+            codeBtn.classList.remove('active');
+        }
+        saveDraft();
+    }
+
+    function insertHTMLAtCursor(html) {
+        if (isSourceMode) {
+            alert('Сначала переключитесь обратно из режима исходного кода!');
+            return;
+        }
+        
+        contentInput.focus();
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+        
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+        
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        const frag = document.createDocumentFragment();
+        let node, lastNode;
+        while ((node = div.firstChild)) {
+            lastNode = frag.appendChild(node);
+        }
+        
+        range.insertNode(frag);
+        if (lastNode) {
+            range.setStartAfter(lastNode);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+        saveDraft();
+    }
+
+    function formatText(command) {
+        if (isSourceMode) return;
+        document.execCommand(command, false, null);
+        saveDraft();
+    }
+
+    function insertImage() {
+        const url = prompt('Введите URL картинки:', 'https://');
+        if (url && url !== 'https://') {
+            const alt = prompt('Подпись к картинке (необязательно):', '') || '';
+            const imgHtml = `<figure><img src="${url}" alt="${alt}">${alt ? `<figcaption>${alt}</figcaption>` : ''}</figure><p><br></p>`;
+            insertHTMLAtCursor(imgHtml);
+        }
+    }
+
+    function insertYouTube() {
+        const url = prompt('Вставьте ссылку на YouTube видео:', 'https://www.youtube.com/watch?v=');
+        if (!url) return;
+
+        let videoId = '';
+        if (url.includes('v=')) {
+            videoId = url.split('v=')[1].split('&')[0];
+        } else if (url.includes('youtu.be/')) {
+            videoId = url.split('youtu.be/')[1].split('?')[0];
+        }
+
+        if (videoId) {
+            const embedHtml = `<div class="video-container"><iframe src="https://www.youtube-nocookie.com/embed/${videoId}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div><p><br></p>`;
+            insertHTMLAtCursor(embedHtml);
+        } else {
+            alert('Не удалось распознать ссылку YouTube. Проверьте формат.');
+        }
+    }
+
+    function insertLink() {
+        if (isSourceMode) return;
+        const url = prompt('Введите URL ссылки:', 'https://');
+        if (url && url !== 'https://') {
+            const selection = window.getSelection().toString();
+            const aHtml = `<a href="${url}" target="_blank">${selection || url}</a>`;
+            insertHTMLAtCursor(aHtml);
+        }
+    }
+
+    // Экспорт в готовый HTML
+    function exportHTML() {
+        const title = titleInput.value || 'Без названия';
+        const author = authorInput.value.trim();
+        const rawContent = isSourceMode ? contentInput.innerText : contentInput.innerHTML;
+        const formattedContent = formatHTML(rawContent);
+        const filename = generateSlug(title);
+
+        let metadataHTML = creationDate;
+        if (author) {
+            metadataHTML = `${author} &bull; ${creationDate}`;
+        }
+
+        const htmlTemplate = `<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        body {
+            font-family: CustomSerif,Georgia,Cambria,'Times New Roman',serif;
+            background-color: #ffffff;
+            color: #1a1a1a;
+            max-width: 720px;
+            margin: 35px auto;
+            padding: 0 20px;
+            line-height: 1.8;
+            font-size: 18px;
+        }
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            line-height: 1.25;
+            letter-spacing: -0.5px;
+        }
+        .post-meta {
+            font-size: 15px;
+            color: #777777;
+            margin-bottom: 30px;
+        }
+        p {
+            margin: 1.2em 0;
+        }
+        ul, ol {
+            padding-left: 25px;
+            margin: 1.2em 0;
+        }
+        li {
+            margin-bottom: 0.4em;
+        }
+        figure {
+            margin: 30px 0;
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+        }
+        figcaption {
+            font-size: 14px;
+            color: #777;
+            margin-top: 8px;
+        }
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            max-width: 100%;
+            background: #000;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        blockquote {
+            text-align: left;
+            border-left: 3px solid #2481cc;
+            margin: 1.5em 0;
+            padding-left: 20px;
+            font-style: italic;
+            color: #4a4a4a;
+        }
+        pre {
+            background: #f6f8fa;
+            padding: 16px;
+            /*border-radius: 6px;*/
+            overflow-x: auto;
+            font-size: 15px;
+			border-left: grey solid;
+        }
+        a {
+            color: rgba(0,0,0,.8);
+            text-decoration: none;
+			border-bottom: .1em solid rgba(0, 0, 0, .7);
+			
+        }
+        a:hover {
+            /*text-decoration: underline;*/
+        }
+		
+    </style>
+</head>
+<body>
+    <article>
+        <h1>${title}</h1>
+        <div class="post-meta">${metadataHTML}</div>
+        <div class="content">
+${formattedContent}
+        </div>
+    </article>
+    <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e6e6e6; font-size: 14px; color: #777; text-align: center;">
+        © ${new Date().getFullYear()} ${author || 'DanikGeek'}. Все права защищены.
+    </footer>
+</body>
+</html>`;
+
+        const blob = new Blob([htmlTemplate], { type: 'text/html;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+    }
+</script>
+
+</body>
+</html>
