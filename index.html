@@ -95,7 +95,17 @@
         input.author-input::placeholder {
             color: #cccccc;
         }
-
+		/*Подсказки*/
+		.editor-hint {
+		  writing-mode: vertical-rl; /* Текст идет вертикально сверху вниз */
+		  text-orientation: mixed;   /* Стандартная ориентация символов */
+  
+ 		 /* Немного красоты для подсказки */
+		  font-size: 12px;
+		  color: #888;
+		  letter-spacing: 1px;
+		  user-select: none;         /* Чтобы случайно не выделялся при работе в редакторе */
+		}
         /* Липкая панель инструментов */
         .editor-tools-wrapper {
             position: sticky;
