@@ -268,7 +268,10 @@
     <!-- Область редактирования -->
     <div id="postContent" class="content-input" contenteditable="true" oninput="saveDraft()" placeholder="Пишите вашу историю..."></div>
 </div>
-<div class="editor-hint"> Подсказка </div>
+	<!- Подсказка -->
+<div class="editor-hint"> Вставляйте текст через Ctrl+Shift+V если хотите чистый формат. <br>
+Если вдруг после обновления страницы текст разъехался нажмите пару раз на кнопку исходного кода <>, текст выправится.<br>
+Вы можете использовать WEB FTP для закачки своих страниц на сервер. </div>
 <script>
     const titleInput = document.getElementById('postTitle');
     const authorInput = document.getElementById('postAuthor');
