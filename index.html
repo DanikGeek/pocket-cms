@@ -99,7 +99,8 @@
 		.editor-hint {
 		  writing-mode: vertical-rl; /* Текст идет вертикально сверху вниз */
 		  text-orientation: mixed;   /* Стандартная ориентация символов */
-  
+  		  writing-mode: vertical-rl;
+  		  transform: rotate(180deg);
  		 /* Немного красоты для подсказки */
 		  font-size: 12px;
 		  color: #888;
@@ -266,7 +267,7 @@
     <!-- Область редактирования -->
     <div id="postContent" class="content-input" contenteditable="true" oninput="saveDraft()" placeholder="Пишите вашу историю..."></div>
 </div>
-
+<div ="editor-hint"> Подсказка </div>
 <script>
     const titleInput = document.getElementById('postTitle');
     const authorInput = document.getElementById('postAuthor');
